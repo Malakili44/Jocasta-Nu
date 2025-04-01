@@ -21,7 +21,6 @@ let bdd = Loadbdd();
 
 const client = new Client({
     intents: [
-        GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.DirectMessageTyping
