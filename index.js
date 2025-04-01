@@ -36,7 +36,7 @@ client.once("ready", () => {
 
 const prefix = config.prefix;
 
-const token = process.env.DISCORD_TOKEN;
+const token(process.env.DISCORD_TOKEN);
 
 // Commande help
 client.on("messageCreate", message => {
