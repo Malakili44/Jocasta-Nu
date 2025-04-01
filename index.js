@@ -1,5 +1,3 @@
-
-client.login(process.env.TOKEN);
 const { 
     Client, GatewayIntentBits, Partials, 
     EmbedBuilder,
@@ -40,6 +38,8 @@ client.once("ready", () => {
 
 
 const prefix = config.prefix;
+
+client.login(process.env.TOKEN);
 
 // Commande help
 client.on("messageCreate", message => {
