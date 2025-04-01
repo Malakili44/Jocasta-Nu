@@ -1,4 +1,7 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const { 
+    Client, GatewayIntentBits, Partials, 
+    EmbedBuilder, PermissionsBitField, ActionRowBuilder, StringSelectMenuBuilder
+} = require("discord.js");
 const fs = require("fs");
 const config = require('./config.json');
 
