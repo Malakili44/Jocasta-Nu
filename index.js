@@ -20,12 +20,11 @@ function Savebdd() {
 let bdd = Loadbdd();
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.DirectMessageTyping
-    ],
-    partials: [Partials.Channel] // Permet de gérer les DM
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 // Quand le bot est prêt
