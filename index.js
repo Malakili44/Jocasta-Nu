@@ -36,7 +36,7 @@ client.once("ready", () => {
 
 const prefix = config.prefix;
 
-client.login(process.env.TOKEN);
+client.login(config.token);
 
 // Commande help
 client.on("messageCreate", message => {
@@ -205,11 +205,27 @@ client.on("messageCreate", async (message) => {
         console.log("test");
     }
 
-    if (message.content === prefix + "clear") {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
+  if (message.content.startsWith(prefix + "clear")) {
+        // Vérification des permissions
+        if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+            return message.reply("Tu n'as pas la permission de gérer les messages !");
+        }
         const args = message.content.split(" ");
-        if (!args[1] || isNaN(args[1])) return message.reply("Il manque le nombre");
-        await message.channel.bulkDelete(parseInt(args[1])).catch();
+        if (!args[1] || isNaN(args[1])) {
+            return message.reply("Il faut spécifier un nombre valide de messages à supprimer !");
+        }
+        const deleteCount = parseInt(args[1]);
+        if (deleteCount < 1 || deleteCount > 100) {
+            return message.reply("Je peux supprimer entre 1 et 100 messages à la fois !");
+        }
+        try {
+            // Supprimer les messages
+            const deleteableMessages = (await message.channel.messages.fetch({ limit: deleteCount }));
+            await message.channel.bulkDelete(deleteableMessages);
+            } catch (error) {
+            console.error("Erreur lors de la suppression des messages :", error);
+            message.reply("Il y a eu une erreur en essayant de supprimer les messages.");
+        }
     }
 });
 
