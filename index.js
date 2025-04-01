@@ -1,11 +1,23 @@
 const Discord = require("discord.js");
 
-const bdd = require('./bdd.json');
+require('web-streams-polyfill');
 
 const fstat = require("fs");
 const path = require('path');
 const fs = require("fs");
-const { channel } = require("diagnostics_channel");
+const { channel } = require("diagnostics_channel")
+
+
+
+const bddPath = "./bdd.json";
+function Savebdd() {
+    try {
+        fs.writeFileSync(bddPath, JSON.stringify(bdd, null, 4), "utf-8");
+    } catch (err) {
+        console.error("Erreur lors de la sauvegarde :", err);
+    }
+}
+let bdd = Loadbdd(); // Charger les données au démarrage
 
 const Client = new Discord.Client({
     intents: [
@@ -32,7 +44,7 @@ Client.login(config.token);
 
 
 
-// Send the help message
+// Commande : "help"
 Client.on("messageCreate", message => {
     if (message.author.bot) return;
 
@@ -76,11 +88,11 @@ Client.on("messageCreate", message => {
                         }
                     ])
             );
-        message.channel.send({content:"**Menu déroulant des rôles**", components: [menuderoulanhelp]})
+        message.channel.send({components: [menuderoulanhelp]})
     }
 });
 
-// Handle select menu interactions
+// Selectionne le menu help
 Client.on("interactionCreate", interaction => {
     if (!interaction.isSelectMenu()) return;
 
@@ -124,9 +136,9 @@ Client.on("interactionCreate", interaction => {
 .setThumbnail(`https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg`)
 .addField("⌨️ Commande sans préfixe", "*-L'ensemble des commandes sans prefix*")
 .addFields(
-    { name: "prefix", value: "Le préfixe du bot", inline: true },
+    { name: "pfx", value: "Le préfixe du bot", inline: true },
     { name: "\u200b", value: "\u200b", inline: true },
-    { name: "bonnenuit", value: "Envoie un message de bonne nuit", inline: true },
+    { name: "bn", value: "Envoie un message de bonne nuit", inline: true },
     { name: "bvn", value: "Envoie un message de bienvenue", inline: true },
 )
     .setTimestamp()
@@ -159,12 +171,6 @@ interaction.channel.send({ embeds: [helpadmin]});
     }
 });
 
-Client.on("messageCreate", message => {
-    if (message.channel.type === "dm") {
-      // message privé
-      message.reply("Bonjour !");
-    }
-  });
 
 Client.on("messageCreate", message => {
 //%perso
@@ -285,7 +291,7 @@ Client.on("messageCreate", async (/** @type {Discord.Message} */ msg) => {
                 return msg.reply("Il manque le nombre").catch();
             msg.channel.bulkDelete(parseInt(args[1])).catch();
             break;
-        
+         
             case "annonce": {
                 if (!msg.member.permissions.has("ADMINISTRATOR")) return;
                 let channelRegExp = /^<#(\d{17,19})>$/;
@@ -316,6 +322,9 @@ Client.on("messageCreate", async (/** @type {Discord.Message} */ msg) => {
 
 
 //variable
+
+//1er test
+/*
 Client.on("messageCreate", message => {
     const args = message.content
         .slice(config.prefix.length)
@@ -328,6 +337,9 @@ Client.on("messageCreate", message => {
         message.reply(`Bjr ${age} et ${sex} et ${ville}`)
     }
 } );
+*/
+
+
 Client.on("messageCreate", message => {
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
@@ -388,144 +400,88 @@ Client.on('guildMemberAdd', (member) => {
 
 
 
-/*benmis
-
-Client.on("messageCreate", message => {
-    const msg = message
-    if(message.content === prefix + "help"){
-        const helpb = new Discord.MessageEmbed()
-        .setTitle("Menu ~ Arazel")
-                .setColor("#FF0000")
-                .setAuthor('Arazel', 'https://media.gq.com/photos/5ddd59ff5bb28e00087a9df6/16:9/w_1280,c_limit/baby-yoda-explainer-gq-november-2019-112619.jpg', 'https://discord.js.org')
-                .setThumbnail(`https://share.creavite.co/5vS6dXAYkST1IIB8.gif`)
-                .addField(
-                    "Préfixe", prefix)
-                .addField(
-                    ":mechanical_arm: Commandes disponibles",
-                    "`help`, `bienvenue`, `idee`, `roll`, `member(s)`, `pub`, `merci`, `avatar`,`bvn`,`vente`,`botinfo`")
-                .addField(
-                    ":tada: Fun",
-                    "`fish`, `salut`")
-                .addField(
-                    ":sunglasses: Commandes sans préfix",
-                    "`bienvenue (bvn)`, `bonjour`, `aurevoir`")
-                    .addField(
-                        ":man_in_tuxedo: Commandes admin",
-                        "`helpadmin`")
-                .setTimestamp()
-                .setFooter('Bot créé par Benmis et Malakili', 'https://media4.giphy.com/media/l3978y5HqiEtqupiM/giphy.gif?cid=790b761127a54aa29cb777fb6cd51ad38314eaf32b893b9b&rid=giphy.gif&ct=g');
-            ;
-
-            message.reply({ embeds: [helpb] }).catch();
-    }
-    
-    if(message.content === prefix + "helpadmin"){
-        if (!message.member.permissions.has("ADMINISTRATOR")) return;
-        const helpadminEmbed = new Discord.MessageEmbed()
-            .setTitle("Menu ~ Arazel")
-            .setColor("#FF0000")
-            .setAuthor('The Coding Time')
-            .setThumbnail(`https://share.creavite.co/5vS6dXAYkST1IIB8.gif`)
-            .addField(
-                "Préfixe", prefix)
-            .addField(
-                ":man_in_tuxedo: Commandes admin",
-                "`clean`, `annonce`")
-            .setTimestamp()
-            .setFooter('Bot créé par Benmis et Malakili', 'https://media4.giphy.com/media/l3978y5HqiEtqupiM/giphy.gif?cid=790b761127a54aa29cb777fb6cd51ad38314eaf32b893b9b&rid=giphy.gif&ct=g');
-        ;
-
-        message.reply({ embeds: [helpadminEmbed] }).catch(); 
-            
-    }
-
-    if(message.content === prefix + ["infoserveur"]){
-        const d = new Date(msg.guild.createdTimestamp);
-            `${d.getUTCDay()}/${d.getUTCMonth()}/${d.getUTCFullYear()}`
-            const infoEmbed = new Discord.MessageEmbed()
-                .setTitle(`Informations ~ ${msg.guild.name}`)
-                .setColor("#FF0000")
-                .setAuthor('Arazel', 'https://media.gq.com/photos/5ddd59ff5bb28e00087a9df6/16:9/w_1280,c_limit/baby-yoda-explainer-gq-november-2019-112619.jpg', 'https://discord.js.org')
-                .setThumbnail('https://gifimage.net/wp-content/uploads/2017/10/matrix-animated-gif-2.gif')
-                .addField(
-                    ` • Date de création : ${d.getUTCDay()}/${d.getUTCMonth()}/${d.getUTCFullYear()}`,
-                    "\u200B")
-                .addField(
-                    ` • Il y a ${message.guild.memberCount} membres sur le serveur !`,
-                    "\u200B")
-                .setTimestamp()
-                .setFooter('Bot créé par Benmis et Malakili', 'https://media4.giphy.com/media/l3978y5HqiEtqupiM/giphy.gif?cid=790b761127a54aa29cb777fb6cd51ad38314eaf32b893b9b&rid=giphy.gif&ct=g');
-            ;
-
-            message.reply({ embeds: [infoEmbed] }).catch();
-        }
-    
-    if(message.content === prefix + ["infobot"]){
-        const botinfoEmbed = new Discord.MessageEmbed()
-        .setTitle(`Informations ~ ${Client.user.tag}`)
-        .setColor("#FF0000")
-        .setAuthor('Arazel', 'https://share.creavite.co/E1L6ZGTCzv2qqXFg.png' , 'https://discord.js.org')
-        .setThumbnail('https://share.creavite.co/5vS6dXAYkST1IIB8.gif')
-        .addField(  
-            ` • Date de création : 13/06/2020 `,
-            "\u200B")
-        .addField(
-            ` • ${Client.guilds.cache.map((guild) => guild.memberCount).reduce((p, c) => p + c)} personnes utilisent ce bot  `,
-            "\u200B")
-        .addField(
-            ` • ${Client.guilds.cache.size} serveurs utilisent ce bot`,
-            "\u200B")
-        .setTimestamp()
-        .setFooter('Bot créé par Benmis et Malakili', 'https://media4.giphy.com/media/l3978y5HqiEtqupiM/giphy.gif?cid=790b761127a54aa29cb777fb6cd51ad38314eaf32b893b9b&rid=giphy.gif&ct=g');
-    ;
-    msg.reply({ embeds: [botinfoEmbed] }).catch();
-    }
-
-    if(message.content === prefix + "clear"){
-        let args = msg.content.slice(config.prefix.length).trim().split(/\s+/g); 
-        if (!msg.member.permissions.has("MANAGE_MESSAGES")) return;
-        if (!args[1] || typeof parseInt(args[1]) !== "number")
-            return msg.reply("Il manque le nombre").catch();
-        message.channel.bulkDelete(args[0] + 1);
-    }
-    }
-)
-*/
 
 
 
 //bot commun 
 //comande de monnaie
-function Savebdd(){
-    fs.writeFile("./bdd.json", JSON.stringify(bdd, null, 4), (err => {
-        if(err) message.channel.send("une erreur est survenue.");
-    }))
-}
-Client.on("messageCreate", message => { 
-    const msg = message   
-        //pay
-        if (message.content === prefix + 'pay'){
-            utilisateur = message.author.id
-            function random(min, max){
-                min = Math.ceil(0);
-                max = Math.floor(100);
-                randnum = Math.floor(Math.random() * (max - min +1)+ min);
-                }
-            random()
-                    bdd["Argent"][utilisateur] = bdd["Argent"][utilisateur]+randnum
-                    Savebdd()
-        message.channel.send("Argent gagné : " + randnum + ", tu as en réserve : " + bdd["Argent"][utilisateur])
-        }
-        //bank
-        if (message.content === prefix + "bank"){
-            const { readFileSync } = require("fs");
-            const JsonToObject = JSON.parse(readFileSync('./bdd.json', 'utf-8'), (identifiant, argent) =>{
-                if (identifiant === message.author.id){
-                    message.reply("vous avez " + argent +" d'argent sur votre compte !!")
-                }
 
-            })
+// Charger la base de données en mémoire
+function Loadbdd() {
+    try {
+        return JSON.parse(fs.readFileSync(bddPath, "utf-8"));
+    } catch (error) {
+        console.error("Erreur de lecture du fichier JSON :", error);
+        return { Argent: {} }; // Renvoie une base vide si erreur
+    }
+}
+
+// Sauvegarder la base de données
+
+
+Client.on("messageCreate", message => { 
+    if (message.content === prefix + "enregistrer") {
+        let utilisateur = message.author.id;
+
+        // Vérifier si l'utilisateur est déjà enregistré
+        if (bdd.Argent.hasOwnProperty(utilisateur)) {
+            return message.reply("✅ Vous êtes déjà enregistré avec **" + bdd.Argent[utilisateur] + "** crédits !");
         }
+
+        // Ajouter l'utilisateur avec un solde initial de 100 crédits
+        bdd.Argent[utilisateur] = 100;
+        Savebdd();
+
+        message.reply("✅ Vous êtes maintenant enregistré avec **100 crédits** !");
+    }
+
+    if (message.content === prefix + 'pay') {
+        let utilisateur = message.author.id;
+        bdd = Loadbdd(); // Recharger les données avant d'exécuter la commande
+
+        //Délai de 12h
+        const maintenant = Date.now(); 
+        const cooldown = 12 * 60 * 60 * 1000; // 12 heures en millisecondes
+
+        // Vérifier si l'utilisateur a déjà utilisé la commande et quand
+        if (!bdd.dernierUsage) {
+            bdd.dernierUsage = {}; // Initialiser si nécessaire
+        }
+
+        if (bdd.dernierUsage[utilisateur] && (maintenant - bdd.dernierUsage[utilisateur] < cooldown)) {
+            const tempsRestant = cooldown - (maintenant - bdd.dernierUsage[utilisateur]);
+            const heuresRestantes = Math.floor(tempsRestant / (60 * 60 * 1000));
+            const minutesRestantes = Math.floor((tempsRestant % (60 * 60 * 1000)) / (60 * 1000));
+
+            return message.reply(`❌ Vous devez attendre encore **${heuresRestantes}h ${minutesRestantes}min** avant d'utiliser cette commande à nouveau.`);
+        }
+
+        // Enregistrer le moment où la commande a été utilisée
+        bdd.dernierUsage[utilisateur] = maintenant;
+        fs.writeFileSync(bddPath, JSON.stringify(bdd, null, 4), "utf-8");
+
+        //reste de la commande :
+
+        // Vérifier si l'utilisateur est bien enregistré
+        if (!bdd || !bdd.Argent || !bdd.Argent.hasOwnProperty(utilisateur)) {
+            return message.channel.send("❌ Vous n'êtes pas encore enregistré ! Utilisez `" + prefix + "enregistrer` pour commencer.");
+        }
+
+        // Générer un montant aléatoire entre 0 et 100 crédits
+        function random(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        let randnum = random(0, 100);
+
+        // Ajouter les crédits au solde de l'utilisateur
+        bdd.Argent[utilisateur] += randnum;
+        Savebdd();
+
+        message.channel.send(`💰 Argent gagné : **${randnum}** crédits\n💼 Solde actuel : **${bdd.Argent[utilisateur]}** crédits.`);
+    };
+
+
+
         //shop
         if(message.content === prefix + "shop"){
             message.delete()
@@ -536,7 +492,7 @@ Client.on("messageCreate", message => {
                     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
                     "https://discord.js.org")
                 .setDescription("\u200b")
-                .setThumbnail(`https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Shop.svg/1200px-Shop.svg.png`)
+                .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Shop.svg/1200px-Shop.svg.png")
                 .addField("⚔️ Rôle", "*Boutique des rôles*")   
                 .addFields(
                     { name: "Richissime", value: "**Coût :** 10 000", inline: true },
@@ -577,28 +533,33 @@ Client.on("messageCreate", message => {
         
 )
 
+//selection rôle richissime
+const { readFileSync, writeFileSync } = require("fs");
+let alreadyBought = [];
+
 Client.on("interactionCreate", interaction => {
   if (interaction.isSelectMenu()) {
     if (interaction.customId === "select") {
 
       if (interaction.values == "richissime") {
-        const userId = interaction.user.id;
+        const utilisateur = interaction.user.id;
 
-        if (bdd["Argent"][userId] < 10000) {
+        if (bdd["Argent"][utilisateur] < 10000) {
+            interaction.channel.bulkDelete(2).catch()
 
           const notEnoughMoney = new Discord.MessageEmbed()
             .setTitle("Not enough money")
-            .setDescription("You do not have enough money to purchase the Richissime role.")
+            .setDescription("Vous n'avez pas assez d'argent pour achter le rôle Richissime.")
             .setColor("RED");
           return interaction.reply({ embeds: [notEnoughMoney], ephemeral: true });
         }
-
-
+        else {
+    
         interaction.channel.bulkDelete(parseInt(2)).catch();
-        const shoproledeco = new Discord.MessageEmbed()
+        const shoprolerichissime = new Discord.MessageEmbed()
           .setColor("#ADD8E6")
           .setTitle("⚔️ *Boutique des rôles*");
-        interaction.channel.send({ embeds: [shoproledeco] }).then(channel => {
+        interaction.channel.send({ embeds: [shoprolerichissime] }).then(channel => {
           var row = new Discord.MessageActionRow()
             .addComponents(
               new Discord.MessageButton()
@@ -614,7 +575,7 @@ Client.on("interactionCreate", interaction => {
                 .setStyle("DANGER")
                 .setEmoji("❌")
             );
-          const Achat = new Discord.MessageEmbed()
+          const Achatrichissime = new Discord.MessageEmbed()
             .setColor("#ADD8E6")
             .setTitle("🛍️ Shop")
             .setDescription("\u200b")
@@ -622,43 +583,252 @@ Client.on("interactionCreate", interaction => {
             .addField("**Confirmez-vous votre achat ?**", "Merci de fermer le channel quelle que soit votre décision")
             .setTimestamp()
             .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
-          interaction.channel.send({ embeds: [Achat], components: [row] });
+          interaction.channel.send({ embeds: [Achatrichissime], components: [row] });
         });
+    }
       }
     }
   }
 });
 
-
-/*const { readFileSync } = require("fs");
-const JsonToObject = JSON.parse(readFileSync('./bdd.json', 'utf-8'), (identifiant, argent) =>{})*/
-
-let alreadyBought = [];
-
+//vérification achat rôle richissime
 Client.on("interactionCreate", async interaction => {
   if (!interaction.isButton()) return;
 
+  const utilisateur = interaction.user.id;
+
   if (interaction.customId === "acheter") {
-    if (alreadyBought.includes(interaction.user.id)) {
-      await interaction.send({ content: "Vous avez déjà acheté cet article !", ephemeral: true });
-    } else {
-      alreadyBought.push(interaction.user.id);
-
-
-      const utilisateur = interaction.user.id;
-      const merciachat = new Discord.MessageEmbed()
-        .setColor("#ADD8E6")
-        .setTitle("✅ **Merci de votre achat**");
-      bdd["Argent"][utilisateur] = bdd["Argent"][utilisateur] - 10000;
-      Savebdd();
-      interaction.channel.bulkDelete(parseInt(2)).catch();
-      interaction.member.roles.add("1047197631706828861");
-
-      await interaction.send({ embeds: [merciachat] });
+    interaction.channel.bulkDelete(2)
+    if (alreadyBought.includes(utilisateur)) {
+      return await interaction.reply({ content: "Vous avez déjà acheté cet article !", ephemeral: true });
     }
+
+    alreadyBought.push(utilisateur);
+    bdd["Argent"][utilisateur] -= 10000;
+    Savebdd();
+
+    const merciachat = new Discord.MessageEmbed()
+      .setColor("#ADD8E6")
+      .setTitle("✅ **Merci de votre achat**");
+
+    await interaction.member.roles.add("1047197631706828861").catch(console.error);
+    await interaction.reply({ embeds: [merciachat], ephemeral: true });
   }
-  if(interaction.customId === "quitter"){
-    interaction.channel.bulkDelete(parseInt(2)).catch();
-    await interaction.send({ content: "Achat annulée", ephemeral: true });
+
+  if (interaction.customId === "quitter") {
+    interaction.channel.bulkDelete(2)
+    await interaction.reply({ content: "Achat annulé", ephemeral: true });
   }
 });
+
+
+/*
+Futur objectif :
+- Mettre en ligne le bot 
+- lorsque je fais la commande shop cela ouve un nouveau chanel 
+- jeu pendu et labyrinthe
+- rpg
+*/
+
+
+
+
+
+
+
+
+// jeu pendu
+
+const { Permissions, MessageActionRow, MessageSelectMenu } = require("discord.js");
+
+const penduStages = [
+    "```\n  _______\n |/      |\n |\n |\n |\n |\n_|___\n```",
+    "```\n  _______\n |/      |\n |      (_)\n |\n |\n |\n_|___\n```",
+    "```\n  _______\n |/      |\n |      (_)\n |       |\n |       |\n |\n_|___\n```",
+    "```\n  _______\n |/      |\n |      (_)\n |      \\|\n |       |\n |\n_|___\n```",
+    "```\n  _______\n |/      |\n |      (_)\n |      \\|/\n |       |\n |\n_|___\n```",
+    "```\n  _______\n |/      |\n |      (_)\n |      \\|/\n |       |\n |      /\n_|___\n```",
+    "```\n  _______\n |/      |\n |      (_)\n |      \\|/\n |       |\n |      / \\\n_|___\n```"
+];
+
+// Listes des mots avec accents
+const wordLists = {
+    histoire: ["Moyen Âge", "Révolution", "Empire", "Monarchie", "République", "Guerre", "Bataille", "Civilisation", "Dynastie", "Dictature", "Constitution", "Archéologie", "Héritage", "Conquête", "Manuscrit", "Souverain",  "Mamelouks", "Charlemagne", "Phillipe Auguste", "Jeanne d'Arc", 
+        "Préhistoire", "Féodalité", "Croisades", "Château", "Chevalier", "Inquisition", "Exploration", "Indépendance", "Réforme",   
+        "Absolutisme", "Propagande", "Gouvernance", "Traité", "Frontière", "Alliance", "Coup d'État", "Hégémonie", "Épopée",  
+        "Armée", "Rébellion", "Suffrage", "Patrimoine", "Censure", "Diplomatie", "Noblesse"
+],
+    jeux_video: ["Console", "Manette", "Graphismes", "Multijoueur", "Pixel", "The Legend of Zelda", "Call of Duty", "League of Legends", "Minecraft", "Quête",  
+"Boss", "Niveau", "Checkpoint", "Sauvegarde", "Respawn", "Hitbox", "Super Mario", "Easter Egg", "Glitch", "The Witcher",  
+"Skin", "Loot", "Crafting", "Grand Theft Auto", "Modding", "Inventaire", "HUD", "Compétence", "Classement", "Trophée",  
+"Succès", "Gameplay", "Mode Histoire", "Coopératif", "Dark Souls", "Hollow Knight", "Fortnite", "Game Over", "Arcade",  
+"Simulation", "Stratégie", "Survie", "Stardew Valley", "Beta", "Patch", "Esport", "Tournoi", "Streamer", "Twitch"
+],
+    espace: ["Soleil", "Lune", "Étoile", "Planète", "Galaxie", "Univers", "Cosmos", "Astéroïde", "Comète", "Météorite",  
+"Satellite", "Orbite", "Gravité", "Espace", "Fusée", "Astronaute", "Station Spatiale", "Télescope", "Trou Noir", "Éclipse",  
+"Voie Lactée", "Mars", "Vénus", "Jupiter", "Saturne", "Uranus", "Neptune", "Mercure", "Big Bang", "Atmosphère",  
+"Oxygène", "Lumière", "Éruption Solaire", "Météore", "Astrophysique", "NASA", "Éclipse Lunaire", "Éclipse Solaire", "Rayon Cosmique", "Nébuleuse",  
+"Système Solaire", "Constellation", "Exoplanète", "Observatoire", "Rayon X", "Énergie Sombre", "Matière Noire", "Cosmonaute", "Galaxie Spirale", "Anneaux de Saturne"
+],
+    sport: ["Football", "Zinedine Zidane", "Tennis", "Natation", "Athlétisme", "Julian Alaphilippe", "Rugby", "Handball", "Tony Parker", "Boxe",  
+"Golf", "Martin Fourcade", "Snowboard", "Patinage", "Marathon", "Course", "Sprint", "Gymnastique", "Musculation", "Yoga",  
+"Teddy Riner", "Judo", "Escrime", "Surf", "Planche à voile", "Triathlon", "Haltérophilie", "Plongeon", "Aviron", "Lutte",  
+"Badminton", "Karim Benzema", "Softball", "Polo", "Équitation", "Motocross", "Sébastien Loeb", "Formule 1", "Skateboard", "Parkour",  
+"Bowling", "Antoine Dupont", "Tir à l'arc", "Escalade", "Canöe", "Rafting", "Hockey", "Ping-pong", "Randonnée", "Renaud Lavillenie"
+]
+};
+// Fonction pour enlever les accents d'un mot
+function normalizeLetter(letter) {
+    return letter.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+let games = new Map();
+
+Client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+    const guild = message.guild;
+    if (!guild) return;
+
+    if (games.has(message.author.id)) {
+        let game = games.get(message.author.id);
+
+        if (message.channel.id !== game.channel.id) return;
+
+        let guess = normalizeLetter(message.content.toLowerCase());
+        if (guess.length === 1 && guess.match(/[a-z]/i)) {
+            handleGuess(message, guess, game);
+        }
+        return;
+    }
+
+    if (message.content === `${prefix}pendu`) {
+        startGame(message);
+    }
+});
+
+async function startGame(message) {
+    const guild = message.guild;
+    const user = message.author;
+
+    if (games.has(user.id)) {
+        return message.reply("Tu as déjà une partie en cours !");
+    }
+
+    try {
+        let channel = await guild.channels.create(`pendu-${user.username}`, {
+            type: "GUILD_TEXT",
+            permissionOverwrites: [
+                {
+                    id: guild.roles.everyone.id,
+                    deny: [Permissions.FLAGS.VIEW_CHANNEL]
+                },
+                {
+                    id: user.id,
+                    allow: [Permissions.FLAGS.VIEW_CHANNEL, Permissions.FLAGS.SEND_MESSAGES]
+                },
+                {
+                    id: Client.user.id,
+                    allow: [Permissions.FLAGS.VIEW_CHANNEL, Permissions.FLAGS.SEND_MESSAGES]
+                }
+            ]
+        });
+
+        message.reply(`🔹 Ta partie de pendu a commencé ! Rejoins le salon : <#${channel.id}>`);
+
+        let themeSelection = new MessageActionRow().addComponents(
+            new MessageSelectMenu()
+                .setCustomId("select_theme")
+                .setPlaceholder("Choisis un thème pour commencer !")
+                .addOptions([
+                    { label: "Histoire", value: "histoire", emoji: "📜" },
+                    { label: "Jeux Vidéo", value: "jeux_video", emoji: "🎮" },
+                    { label: "Espace", value: "espace", emoji: "🌌" },
+                    { label: "Sport", value: "sport", emoji: "🏆" }
+                ])
+        );
+
+        let msg = await channel.send({
+            content: `**${user.username}**, choisis un thème avant de commencer la partie :`,
+            components: [themeSelection]
+        });
+
+        const filter = (interaction) => interaction.user.id === user.id && interaction.customId === "select_theme";
+        const collector = channel.createMessageComponentCollector({ filter, time: 30000 });
+
+        collector.on("collect", async (interaction) => {
+            let chosenTheme = interaction.values[0];
+            let word = wordLists[chosenTheme][Math.floor(Math.random() * wordLists[chosenTheme].length)];
+            let hiddenWord = word.split("").map(char => (char === " " ? " " : "_")).join("")
+            let errors = 0;
+            let guessedLetters = [];
+
+            games.set(user.id, { word, hiddenWord, errors, guessedLetters, channel, originChannel: message.channel });
+
+            await interaction.update({ content: `Thème choisi : **${chosenTheme}** !\n\nMot à deviner : \`${hiddenWord}\`\n\n${penduStages[errors]}\n\nÉcris une lettre pour deviner !`, components: [] });
+        });
+
+    } catch (error) {
+        console.error("Erreur lors de la création du salon :", error);
+        message.reply("Je n'ai pas pu créer le salon. Vérifie mes permissions !");
+    }
+}
+
+async function handleGuess(message, letter, game) {
+    let utilisateur = message.author.id;
+    if (game.guessedLetters.includes(letter)) {
+        return message.channel.send(`Tu as déjà essayé la lettre **${letter}**.`);
+    }
+
+    game.guessedLetters.push(letter);
+    let normalizedWord = normalizeLetter(game.word).toLowerCase();
+
+    if (normalizedWord.includes(letter)) {
+        let newHidden = game.hiddenWord.split('');
+        for (let i = 0; i < game.word.length; i++) {
+            if (normalizeLetter(game.word[i].toLowerCase()) === letter) {
+                newHidden[i] = game.word[i];
+            }
+        }
+        game.hiddenWord = newHidden.join('');
+
+        if (!game.hiddenWord.includes("_")) {
+            sendEndMessage(message.author.id, `🎉 **Victoire !** <@${message.author.id}>, tu as gagné 100 crédits!`);
+            bdd.Argent[utilisateur] = (bdd.Argent[utilisateur] || 0) + 100;
+            Savebdd();
+            endGame(message.author.id);
+        } else {
+            message.channel.send(`Bonne lettre !\n\nMot : \`${game.hiddenWord}\`\n\n${penduStages[game.errors]}`);
+        }
+    } else {
+        game.errors++;
+
+        if (game.errors >= penduStages.length - 1) {
+            sendEndMessage(message.author.id, `😵 **Défaite !** <@${message.author.id}> a perdu. Le mot était **${game.word}**.`);
+            endGame(message.author.id);
+        } else {
+            message.channel.send(`Mauvaise lettre !\n\nMot : \`${game.hiddenWord}\`\n\n${penduStages[game.errors]}`);
+        }
+    }
+}
+
+// ⬇️ Ces fonctions doivent être placées ici, en dehors de `handleGuess()`
+async function endGame(userId) {
+    let game = games.get(userId);
+    if (game) {
+        if (game.channel) {
+            try {
+                await game.channel.delete();
+            } catch (err) {
+                console.error("Erreur lors de la suppression du salon :", err);
+            }
+        }
+        games.delete(userId);
+    }
+}
+
+function sendEndMessage(userId, messageContent) {
+    let game = games.get(userId);
+    if (game && game.originChannel) {
+        game.originChannel.send(messageContent);
+    }
+}
