@@ -402,7 +402,7 @@ client.on("messageCreate", message => {
 
 // Rôle selection
 client.on("interactionCreate", interaction => {
-    if (interaction.isSelectMenu()) {
+    if (interaction.isStringSelectMenu()) {
         if (interaction.customId === "select") {
             if (interaction.values[0] === "richissime") {
                 const utilisateur = interaction.user.id;
