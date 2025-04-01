@@ -40,7 +40,7 @@ Client.on("ready", () => {
 
     console.log("bot opérationel")
 });
-Client.login(config.token);
+client.login(process.env.TOKEN);
 
 
 
