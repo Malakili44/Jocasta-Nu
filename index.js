@@ -21,9 +21,11 @@ let bdd = Loadbdd();
 
 const client = new Client({
     intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageTyping
     ],
     partials: [Partials.Channel] // Permet de gérer les DM
 });
