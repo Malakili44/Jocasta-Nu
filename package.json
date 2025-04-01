@@ -1,0 +1,16 @@
+{
+  "name": "jocasta-nu",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^13.17.1",
+    "undici": "^7.6.0",
+    "web-streams-polyfill": "^4.1.0"
+  }
+}
