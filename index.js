@@ -1,15 +1,15 @@
-const Discord = require("discord.js");
 
-require('web-streams-polyfill');
-
-const fstat = require("fs");
-const path = require('path');
+client.login(process.env.TOKEN);
+const { 
+    Client, GatewayIntentBits, Partials, 
+    EmbedBuilder,
+} = require("discord.js");
 const fs = require("fs");
-const { channel } = require("diagnostics_channel")
-
-
+const config = require('./config.json');
 
 const bddPath = "./bdd.json";
+
+// Fonction de sauvegarde des données
 function Savebdd() {
     try {
         fs.writeFileSync(bddPath, JSON.stringify(bdd, null, 4), "utf-8");
@@ -17,59 +17,64 @@ function Savebdd() {
         console.error("Erreur lors de la sauvegarde :", err);
     }
 }
-let bdd = Loadbdd(); // Charger les données au démarrage
 
-const Client = new Discord.Client({
+// Charger les données au démarrage
+let bdd = Loadbdd();
+
+const client = new Client({
     intents: [
-        Discord.Intents.FLAGS.GUILDS,
-        Discord.Intents.FLAGS.GUILD_MESSAGES
-    ]
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageTyping
+    ],
+    partials: [Partials.Channel] // Permet de gérer les DM
 });
-const client = new Discord.Client({ partials: ["CHANNEL"], intents: [
-    Discord.Intents.FLAGS.DIRECT_MESSAGES, 
-    Discord.Intents.FLAGS.DIRECT_MESSAGE_TYPING
-]})
+
+// Quand le bot est prêt
+client.once("ready", () => {
+    client.user.setActivity(config.activity);
+    console.log("Bot opérationnel !");
+});
 
 
-const config = require('./config.json');
-Client.on("ready", () => {
-    Client.user.setActivity(config.activity)
-})
 const prefix = config.prefix;
-Client.on("ready", () => {  
 
-    console.log("bot opérationel")
-});
-client.login(process.env.TOKEN);
-
-
-
-// Commande : "help"
-Client.on("messageCreate", message => {
+// Commande help
+client.on("messageCreate", message => {
     if (message.author.bot) return;
 
     if (message.content === prefix + "help") {
-        message.delete()
-        const help = new Discord.MessageEmbed()
-        .setColor("#d90000")
-        .setTitle("🤔 HELP")
-        .setAuthor("Jocasta Nu", 
-            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
-            "https://discord.js.org")
-        .setDescription("\u200b")
-        .setThumbnail(`https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg`)
-        .addField("🔑 Préfixe", `%`)   
-        .addField("🖱️ Menu help des commandes", "Le menu d'aide pour les commandes de base : *%helpcommand*")
-        .addField("⌨️ Menu help des commandes sans préfixe", "Le menu d'aide pour les commandes sans préfixe : *%helpprefix*")
-        .setTimestamp()
-        .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
-        message.channel.send({ embeds: [help]});
+        message.delete();
 
-        const menuderoulanhelp = new Discord.MessageActionRow()
+        const helpEmbed = new EmbedBuilder()
+            .setColor("#d90000")
+            .setTitle("🤔 HELP")
+            .setAuthor({ 
+                name: "Jocasta Nu", 
+                iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
+                url: "https://discord.js.org"
+            })
+            .setThumbnail("https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg")
+            .addFields(
+                { name: "🔑 Préfixe", value: "%" },
+                { name: "🖱️ Menu help des commandes", value: "Le menu d'aide pour les commandes de base : *%helpcommand*" },
+                { name: "⌨️ Menu help des commandes sans préfixe", value: "Le menu d'aide pour les commandes sans préfixe : *%helpprefix*" }
+            )
+            .setTimestamp()
+            .setFooter({ 
+                text: "Bot créé par Malakili", 
+                iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU"
+            });
+
+        message.channel.send({ embeds: [helpEmbed] });
+
+        const menuDeroulant = new ActionRowBuilder()
             .addComponents(
-                new Discord.MessageSelectMenu()
+                new StringSelectMenuBuilder()
                     .setCustomId("selecthelp")
-                    .setPlaceholder("Selectionner un menu d'aide")
+                    .setPlaceholder("Sélectionner un menu d'aide")
                     .addOptions([
                         {
                             label: "Commande",
@@ -77,7 +82,7 @@ Client.on("messageCreate", message => {
                             value: "helpcommand"
                         },
                         {
-                            label: "Sans préfix",
+                            label: "Sans préfixe",
                             description: "Le menu d'aide pour les commandes sans préfixe",
                             value: "helpprefix"
                         },
@@ -88,238 +93,128 @@ Client.on("messageCreate", message => {
                         }
                     ])
             );
-        message.channel.send({components: [menuderoulanhelp]})
+
+        message.channel.send({ components: [menuDeroulant] });
     }
 });
 
-// Selectionne le menu help
-Client.on("interactionCreate", interaction => {
-    if (!interaction.isSelectMenu()) return;
+// Sélection du menu help
+client.on("interactionCreate", interaction => {
+    if (!interaction.isStringSelectMenu()) return;
 
     if (interaction.customId === "selecthelp") {
-        if (interaction.values == "helpcommand") {
-            interaction.channel.bulkDelete(parseInt(2)).catch()
-                const helpcommand = new Discord.MessageEmbed()
-        .setColor("#d90000")
-        .setTitle("🤔 HELP COMMAND")
-        .setAuthor("Jocasta Nu", 
-            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
-            "https://discord.js.org")
-        .setDescription("\u200b")
-        .setThumbnail(`https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg`)
-        .addField("ℹ️ General", "*-Toutes les commandes générales*")   
-        .addFields(
-            { name: "%help", value: "Liste des commandes", inline: true },
-            { name: "\u200b", value: "\u200b", inline: true },
-            { name: "%perso", value: "Liste des perso disponible", inline: true },
-            { name: "%invite", value: "Crée une invitation pour ce serveur", inline: true },
-            { name: "\u200b", value: "\u200b", inline: true },
-            { name: "%invitehub", value: "Crée une invitation pour le serveur The Hub", inline: true },
-            { name: "%avatar", value: "Affiche ton avatar", inline: true },
-            { name: "\u200b", value: "\u200b", inline: true },
-            { name: "%infoserv", value: "Information sur le serveur", inline: true },
-        )
-        .setTimestamp()
-        .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
+        interaction.channel.bulkDelete(2).catch(() => {}); // Suppression des 2 derniers messages
 
-    interaction.channel.send({ embeds: [helpcommand]});
-        }
-        if (interaction.values == "helpprefix") {
-            interaction.channel.bulkDelete(parseInt(2)).catch()
-            const helpprefix = new Discord.MessageEmbed()
-.setColor("#d90000")
-.setTitle("🤔 HELP PREFIX")
-.setAuthor("Jocasta Nu", 
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
-    "https://discord.js.org")
-.setDescription("\u200b")
-.setThumbnail(`https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg`)
-.addField("⌨️ Commande sans préfixe", "*-L'ensemble des commandes sans prefix*")
-.addFields(
-    { name: "pfx", value: "Le préfixe du bot", inline: true },
-    { name: "\u200b", value: "\u200b", inline: true },
-    { name: "bn", value: "Envoie un message de bonne nuit", inline: true },
-    { name: "bvn", value: "Envoie un message de bienvenue", inline: true },
-)
-    .setTimestamp()
-    .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
+        let embed;
+        
+        if (interaction.values[0] === "helpcommand") {
+            embed = new EmbedBuilder()
+                .setColor("#d90000")
+                .setTitle("🤔 HELP COMMAND")
+                .setAuthor({ name: "Jocasta Nu", iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU", url: "https://discord.js.org" })
+                .setThumbnail("https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg")
+                .addFields(
+                    { name: "%help", value: "Liste des commandes", inline: true },
+                    { name: "%perso", value: "Liste des perso disponibles", inline: true },
+                    { name: "%invite", value: "Crée une invitation pour ce serveur", inline: true },
+                    { name: "%avatar", value: "Affiche ton avatar", inline: true },
+                    { name: "%infoserv", value: "Informations sur le serveur", inline: true }
+                )
+                .setTimestamp()
+                .setFooter({ text: "Bot créé par Malakili", iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU" });
 
-interaction.channel.send({ embeds: [helpprefix]});
+        } else if (interaction.values[0] === "helpprefix") {
+            embed = new EmbedBuilder()
+                .setColor("#d90000")
+                .setTitle("🤔 HELP PREFIX")
+                .setThumbnail("https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg")
+                .addFields(
+                    { name: "pfx", value: "Le préfixe du bot", inline: true },
+                    { name: "bn", value: "Envoie un message de bonne nuit", inline: true },
+                    { name: "bvn", value: "Envoie un message de bienvenue", inline: true }
+                )
+                .setTimestamp()
+                .setFooter({ text: "Bot créé par Malakili", iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU" });
+
+        } else if (interaction.values[0] === "helpadmin") {
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
+            
+            embed = new EmbedBuilder()
+                .setColor("#d90000")
+                .setTitle("🤔 HELP ADMIN")
+                .addFields(
+                    { name: "%test", value: "Créer un test de réponse du bot", inline: true },
+                    { name: "%clear ou clean + nombre", value: "Supprime un nombre de messages", inline: true },
+                    { name: "%annonce + id channel + message", value: "Crée un message dans le salon demandé", inline: true }
+                )
+                .setTimestamp()
+                .setFooter({ text: "Bot créé par Malakili", iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU" });
         }
-        if (interaction.values == "helpadmin") {
-            interaction.channel.bulkDelete(parseInt(2)).catch()
-            if (!interaction.member.permissions.has("MANAGE_MESSAGES"))return;
-            const helpadmin = new Discord.MessageEmbed()
-.setColor("#d90000")
-.setTitle("🤔 HELP ADMIN")
-.setAuthor("Jocasta Nu", 
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
-    "https://discord.js.org")
-.setDescription("\u200b")
-.setThumbnail(`https://i.pinimg.com/originals/0a/ae/85/0aae85f8674735a413d587259dd332d7.jpg`)
-.addField("ℹ️ Commande Admin", "*-Toutes les commandes des admins*")   
-.addFields(
-    { name: "%test", value: "créer un test de réponse du bot", inline: true },
-    { name: "\u200b", value: "\u200b", inline: true },
-    { name: "%clear ou clean + nombre", value: "Supprime le nombre de message demandé", inline: true },
-    { name: "%annonce + id channel + message", value: "Crée un message dans le salon demandé", inline: true },
-)
-.setTimestamp()
-.setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
-interaction.channel.send({ embeds: [helpadmin]});
+
+        if (embed) {
+            interaction.channel.send({ embeds: [embed] });
         }
     }
 });
 
+client.on("messageCreate", async (message) => {
+    if (!message.guild) return;
 
-Client.on("messageCreate", message => {
-//%perso
-if(message.content === prefix + "perso"){
-    const perso = new Discord.MessageEmbed()
-        .setColor("#a004b5")
-        .setTitle("Personnages disponibles")
-        .setAuthor("Jocasta Nu", 
-            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
-            "https://discord.js.org")
-        .setThumbnail(
-            `http://pm1.narvii.com/7012/66269bf1b4213c12a82cee93672f847aa2266742r1-2048-1152v2_00.jpg`)
-        .setDescription("-_Voici tous les personnages diponibles avec la commandes %_")
-        .addFields(
-            { name: 'Yoda', value: '%Yoda', inline: true },
-            { name: 'Anakin Skywalker', value: '%Anakin', inline: true },
-        )
-        .addField("Wiki star wars", "https://starwars.fandom.com/fr/wiki/Accueil")
-        .setTimestamp()
-        .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
-    
-    message.channel.send({ embeds: [perso]});
+    if (message.content === prefix + "perso") {
+        const perso = new EmbedBuilder()
+            .setColor("#a004b5")
+            .setTitle("Personnages disponibles")
+            .setAuthor({
+                name: "Jocasta Nu",
+                iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
+                url: "https://discord.js.org"
+            })
+            .setThumbnail("http://pm1.narvii.com/7012/66269bf1b4213c12a82cee93672f847aa2266742r1-2048-1152v2_00.jpg")
+            .setDescription("-_Voici tous les personnages disponibles avec la commande %_")
+            .addFields(
+                { name: 'Yoda', value: '%Yoda', inline: true },
+                { name: 'Anakin Skywalker', value: '%Anakin', inline: true }
+            )
+            .addFields({ name: "Wiki star wars", value: "https://starwars.fandom.com/fr/wiki/Accueil" })
+            .setTimestamp()
+            .setFooter({
+                text: "Bot créé par Malakili",
+                iconURL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU"
+            });
+        message.channel.send({ embeds: [perso] });
     }
 
-//%invitehub
-if(message.content === prefix + "invitehub"){
-    message.reply("**Fan de star wars** =============================================================\nBonjour ! 👋\n Voici un serveur communautaire qui n attend que toi ! 👈\n Rencontre des personnes sympas dans un environnement sain pour faire tout et rien ! 😎\n Tu voudrais faire quoi ? Discussion, partage dart, jeux vidéos, RP et bien plus encore ! 🥳============================================================= Rejoins la grande aventure de The Hub ! 👍\n https://discord.gg/WXskw3A ============================================================= PS: Lis bien le message de bienvenue ! Il explique tout ce que tu dois savoir sur le serveur ! \n🤵 Candidatures staff ouvertes !");
+    if (message.content === prefix + "invitehub") {
+        message.reply("**Fan de star wars** =============================================================\nBonjour ! 👋\n Voici un serveur communautaire qui n'attend que toi ! 👈\n Rencontre des personnes sympas dans un environnement sain pour faire tout et rien ! 😎\n Tu voudrais faire quoi ? Discussion, partage d'art, jeux vidéos, RP et bien plus encore ! 🥳============================================================= Rejoins la grande aventure de The Hub ! 👍\n https://discord.gg/WXskw3A ============================================================= PS: Lis bien le message de bienvenue ! Il explique tout ce que tu dois savoir sur le serveur ! \n🤵 Candidatures staff ouvertes !");
     }
 
-//%invite
-if(message.content === prefix + "invite"){
-    message.reply("**Fan de star wars** =============================================================\nBonjour ! 👋\nTu cherches un serveur star wars fancophone, ne cherche plus tu as trouvé.\nCe serveur qui rallie jeu vidéo, débat sur l'univers sw et bot interactifs, il a tous pour te plaire.\n Rejoins donc nous sur Fan de star wars:\n https://discord.gg/qnzuDyyA  =============================================================A la prochaine, et au plaisir de se voir connecter")
+    if (message.content === prefix + "invite") {
+        message.reply("**Fan de star wars** =============================================================\nBonjour ! 👋\nTu cherches un serveur star wars francophone, ne cherche plus tu as trouvé.\nCe serveur qui rallie jeu vidéo, débat sur l'univers sw et bot interactifs, il a tout pour te plaire.\n Rejoins donc nous sur Fan de star wars:\n https://discord.gg/qnzuDyyA  =============================================================A la prochaine, et au plaisir de se voir connecté");
     }
 
-//info serveur
-if(message.content === prefix + "infoserv"){
-        const infoserv = new Discord.MessageEmbed()
-                .setColor("#C016FF")
-                .setThumbnail(message.guild.iconURL())
-                .addField(`Plus d'information à propos du serveur **${message.guild.name}**`,
-                `
-                · Il y a ${message.guild.memberCount} membres
-                · Il y a ${message.guild.roles.cache.size} rôles
-                · Votre serveur possède ${message.guild.channels.cache.filter(
-                    m => m.type === 'GUILD_TEXT').size} salons textuels et ${message.guild.channels.cache.filter(
-                    m => m.type === 'GUILD_VOICE').size} salons vocaux
-                `)
-        
-            message.channel.send({ embeds: [infoserv]});
-}
-
-//test
-if(message.content === prefix + "test"){
-message.reply("test")
-console.log("test")
-}
-
-//embled
-if(message.content === prefix + "sondage"){
-    message.delete()
-    const embledchangant = new Discord.MessageEmbed()
-    .setColor("#C016FF")
-    .addField("Sondage :", "Etes-vous un joueur abonné sur le jeu swtor ?")
-    message.channel.send({ embeds: [embledchangant] });
-    }
-    
-    if(message.content === prefix + "embled2"){
-        const embledchangant2 = new Discord.MessageEmbed()
-        .setTitle("Classement GAC")
-        .setAuthor("Malakili/Maximus Decimus", 
-            "https://i.pinimg.com/564x/cf/ad/5c/cfad5c68daa77b901598c5a166172310.jpg",
-            "https://discord.js.org")
-        .setColor("#C016FF")
-        .setThumbnail(
-            `https://wiki.swgoh.help/images/f/f7/Grand_Arena.jpg`)
-        .addField("\u200b", `Salut à tous,\n \n Une nouvelle saison GAC vient de commencer.🎉\n \n Pour les nouveaux sur le serveur chaque semaine un classement de la GAC est faite.\n Si vous souhaitez y participer envoie un mp à MALAKILI en donnat votre **code allié** et votre **pseudo en jeu**.\n \n Je vous souhaite un bon jeu et bonne chance.`)
-        .setTimestamp() 
-        .setFooter(`Le staff de ${message.guild.name}`, "https://i.pinimg.com/564x/e0/ca/d9/e0cad954757b92f293979804b319e403.jpg");
-        message.channel.send({ embeds: [embledchangant2] });
-} 
-    
-//avatar
-if(message.content === prefix + "avatar"){
-    const avatar = new Discord.MessageEmbed()
-    .setTitle(`Avatar de ${message.author.username}`)
-    .setColor(`RANDOM`)
-    .setDescription('`Ton avatar :`')
-    .setImage(message.author.displayAvatarURL({dynamic: true, size: 256}))
-
-    message.channel.send({ embeds: [avatar] });
+    if (message.content === prefix + "infoserv") {
+        const infoserv = new EmbedBuilder()
+            .setColor("#C016FF")
+            .setThumbnail(message.guild.iconURL())
+            .addFields({
+                name: `Plus d'informations sur **${message.guild.name}**`,
+                value: `\n· Il y a ${message.guild.memberCount} membres\n· Il y a ${message.guild.roles.cache.size} rôles\n· Votre serveur possède ${message.guild.channels.cache.filter(m => m.type === 0).size} salons textuels et ${message.guild.channels.cache.filter(m => m.type === 2).size} salons vocaux`
+            });
+        message.channel.send({ embeds: [infoserv] });
     }
 
-//id
-if (message.content === prefix + 'id'){
-    message.reply(message.author.id)
-}
+    if (message.content === prefix + "test") {
+        message.reply("test");
+        console.log("test");
+    }
 
-//comande perso sw
-else if(message.content === prefix + "Yoda") {
-    message.reply("Yoda était un individu d'une espèce inconnue qui comptait parmi les Maîtres Jedi les plus puissants et reconnus de toute l'histoire de la Galaxie, célèbre pour sa sagesse légendaire, sa maîtrise de la Force et ses talents au sabre laser.\n Il était membre du Haut Conseil Jedi pendant les dernières décennies de la République Galactique et en était le Grand Maître avant et pendant la Guerre des Clones.\n À la suite de la bataille de Geonosis, Yoda prit le titre de Maître de l'Ordre en plus de celui de Grand Maître.\n **Wiki star wars**\n https://starwars.fandom.com/fr/wiki/Accueil");
-}
-else if (message.content === prefix + "Anakin") {
-   message.reply("Anakin Skywalker était un Chevalier Jedi originaire de la planète désertique Tatooine qui servit la République Galactique dans ses dernières années.\n Il fut le Maître Jedi de la jeune Togruta Ahsoka Tano pendant la Guerre des Clones.\n Succombant ensuite au Côté Obscur, il devint le Seigneur Sith Dark Vador.\n Indéfectible bras-droit de Dark Sidious durant l'ère Impériale, il prit part à la Purge Jedi, à la lutte contre la rébellion et à la Guerre Civile Galactique avant de revenir du Côté Lumineux grâce à son fils, Luke Skywalker.\n **Wiki star wars**\n https://starwars.fandom.com/fr/wiki/Accueil");
-}
-})
-
-//commande admin 
-Client.on("messageCreate", async (/** @type {Discord.Message} */ msg) => {
-    if (!msg.content.startsWith(prefix)) return;
-    let args = msg.content.slice(prefix.length).trim().split(/\s+/g); 
-    switch (args[0].toLowerCase()) {
-        
-        /* CLEAN */
-        case "clear":
-        case "clean":
-            if (!msg.member.permissions.has("MANAGE_MESSAGES")) return;
-            if (!args[1] || typeof parseInt(args[1]) !== "number")
-                return msg.reply("Il manque le nombre").catch();
-            msg.channel.bulkDelete(parseInt(args[1])).catch();
-            break;
-         
-            case "annonce": {
-                if (!msg.member.permissions.has("ADMINISTRATOR")) return;
-                let channelRegExp = /^<#(\d{17,19})>$/;
-        
-                if (!args[1] || !channelRegExp.test(args[1]) || !args[2])
-                    return msg.reply("Commande Non Valide").catch();
-        
-                let channelID = args[1].match(channelRegExp)[1];
-                let channel = await msg.client.channels.fetch(channelID).catch();
-        
-                if (!channel)
-                    return msg.reply(
-                        `Le channel <#${channelID}> n'existe pas`
-                    ).catch();
-        
-                let annoucementMessage = args.slice(2).join(" ");
-        
-                if (!annoucementMessage.length)
-                    return msg.reply("Message non valide").catch();
-                    const anonceEmbed = new Discord.MessageEmbed()
-                    .setColor("#0000FF")
-                    .addField(
-                        annoucementMessage,
-                        `*Le staff ${msg.guild.name}*`)
-                    channel.send({ embeds: [anonceEmbed] })
-    }}}
-)
-
+    if (message.content === prefix + "clear") {
+        if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
+        const args = message.content.split(" ");
+        if (!args[1] || isNaN(args[1])) return message.reply("Il manque le nombre");
+        await message.channel.bulkDelete(parseInt(args[1])).catch();
+    }
+});
 
 //variable
 
@@ -339,93 +234,80 @@ Client.on("messageCreate", message => {
 } );
 */
 
-
-Client.on("messageCreate", message => {
+client.on("messageCreate", message => {
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
 
-    if (command === 'asv'){
-        message.delete()
+    if (command === 'asv') {
+        message.delete();
         let [titre, salon, pconcerné] = args;
-        const bnembled = new Discord.MessageEmbed()
-        .setColor("RANDOM")
-        .setTitle(`${titre}`)
-        .setDescription(`Une annonce à été faite dans le salon : ${salon}`)
-        .addField("\u200b", "Merci de répondre au question en avec les réactions adéquate");
+        const bnembled = new EmbedBuilder()
+            .setColor("Random")
+            .setTitle(`${titre}`)
+            .setDescription(`Une annonce a été faite dans le salon : ${salon}`)
+            .addFields({ name: "\u200b", value: "Merci de répondre aux questions avec les réactions adéquates" });
 
         message.channel.send({ embeds: [bnembled] });
-        message.channel.send(`${pconcerné}`)
+        message.channel.send(`${pconcerné}`);
     }
+});
 
-    
-})     
-
-//PREFIX
-Client.on("messageCreate", message => {
+client.on("messageCreate", message => {
     //bvn
-    if(message.content === "bvn"){
-        message.delete()
-        const bvnembled = new Discord.MessageEmbed()
-        .setColor("RANDOM")
-        .setDescription(`:wave: **${message.member.displayName}** vous souhaite la bienvenue sur le serveur **${message.guild.name}** !`);
+    if (message.content === "bvn") {
+        message.delete();
+        const bvnembled = new EmbedBuilder()
+            .setColor("Random")
+            .setDescription(`:wave: **${message.member.displayName}** vous souhaite la bienvenue sur le serveur **${message.guild.name}** !`);
 
         message.channel.send({ embeds: [bvnembled] });
-        }
-    //bn
-    if(message.content === "bn"){
-        message.delete()
-        const bnembled = new Discord.MessageEmbed()
-        .setColor("RANDOM")
-        .setDescription(`**${message.member.displayName}** vous souhaite une bonne nuit 🌃🛌 !`);
-    
-        message.channel.send({ embeds: [bnembled] });
-        }
-    //pfx
-    if(message.content === "pfx"){
-        message.delete()
-        const pfxembled = new Discord.MessageEmbed()
-        .setColor("RANDOM")
-        .setDescription(`Le bot **${Client.user.username}** à pour prefix : **%**`);
-        
-        message.channel.send({ embeds: [pfxembled] });
-        }
     }
-)
+    //bn
+    if (message.content === "bn") {
+        message.delete();
+        const bnembled = new EmbedBuilder()
+            .setColor("Random")
+            .setDescription(`**${message.member.displayName}** vous souhaite une bonne nuit 🌃🛌 !`);
+
+        message.channel.send({ embeds: [bnembled] });
+    }
+    //pfx
+    if (message.content === "pfx") {
+        message.delete();
+        const pfxembled = new EmbedBuilder()
+            .setColor("Random")
+            .setDescription(`Le bot **${client.user.username}** a pour préfixe : **%**`);
+
+        message.channel.send({ embeds: [pfxembled] });
+    }
+});
+
+client.on('guildMemberAdd', (member) => {
+    client.channels.cache.get('933478051222782066').send(`Bienvenue sur le serveur ${member.user.username}!`);
+});
 
 
 
-Client.on('guildMemberAdd', (member) => {
-    Client.guild.channels.get('933478051222782066').send(`Bienvenue sur le serveur ${member.user.username}! `)
-})  
-
-
-
-
-
-
-//bot commun 
-//comande de monnaie
-
-// Charger la base de données en mémoire
 function Loadbdd() {
     try {
         return JSON.parse(fs.readFileSync(bddPath, "utf-8"));
     } catch (error) {
         console.error("Erreur de lecture du fichier JSON :", error);
-        return { Argent: {} }; // Renvoie une base vide si erreur
+        return { Argent: {} };
     }
 }
 
-// Sauvegarder la base de données
+function Savebdd() {
+    fs.writeFileSync(bddPath, JSON.stringify(bdd, null, 4), "utf-8");
+}
 
-
-Client.on("messageCreate", message => { 
-    if (message.content === prefix + "enregistrer") {
+client.on("messageCreate", message => {
+    if (message.content === config.prefix + "enregistrer") {
         let utilisateur = message.author.id;
 
         // Vérifier si l'utilisateur est déjà enregistré
         if (bdd.Argent.hasOwnProperty(utilisateur)) {
-            return message.reply("✅ Vous êtes déjà enregistré avec **" + bdd.Argent[utilisateur] + "** crédits !");
+            return message.reply(`✅ Vous êtes déjà enregistré avec **${bdd.Argent[utilisateur]}** crédits !`);
         }
 
         // Ajouter l'utilisateur avec un solde initial de 100 crédits
@@ -435,12 +317,11 @@ Client.on("messageCreate", message => {
         message.reply("✅ Vous êtes maintenant enregistré avec **100 crédits** !");
     }
 
-    if (message.content === prefix + 'pay') {
+    if (message.content === config.prefix + 'pay') {
         let utilisateur = message.author.id;
         bdd = Loadbdd(); // Recharger les données avant d'exécuter la commande
 
-        //Délai de 12h
-        const maintenant = Date.now(); 
+        const maintenant = Date.now();
         const cooldown = 12 * 60 * 60 * 1000; // 12 heures en millisecondes
 
         // Vérifier si l'utilisateur a déjà utilisé la commande et quand
@@ -460,11 +341,9 @@ Client.on("messageCreate", message => {
         bdd.dernierUsage[utilisateur] = maintenant;
         fs.writeFileSync(bddPath, JSON.stringify(bdd, null, 4), "utf-8");
 
-        //reste de la commande :
-
         // Vérifier si l'utilisateur est bien enregistré
         if (!bdd || !bdd.Argent || !bdd.Argent.hasOwnProperty(utilisateur)) {
-            return message.channel.send("❌ Vous n'êtes pas encore enregistré ! Utilisez `" + prefix + "enregistrer` pour commencer.");
+            return message.channel.send(`❌ Vous n'êtes pas encore enregistré ! Utilisez \`${config.prefix}enregistrer\` pour commencer.`);
         }
 
         // Générer un montant aléatoire entre 0 et 100 crédits
@@ -478,149 +357,135 @@ Client.on("messageCreate", message => {
         Savebdd();
 
         message.channel.send(`💰 Argent gagné : **${randnum}** crédits\n💼 Solde actuel : **${bdd.Argent[utilisateur]}** crédits.`);
-    };
-
-
-
-        //shop
-        if(message.content === prefix + "shop"){
-            message.delete()
-            const shop = new Discord.MessageEmbed()
-                .setColor("	#ADD8E6")
-                .setTitle("🛍️ Shop")
-                .setAuthor("Jocasta Nu", 
-                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
-                    "https://discord.js.org")
-                .setDescription("\u200b")
-                .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Shop.svg/1200px-Shop.svg.png")
-                .addField("⚔️ Rôle", "*Boutique des rôles*")   
-                .addFields(
-                    { name: "Richissime", value: "**Coût :** 10 000", inline: true },
-                    { name: "\u200b", value: "\u200b", inline: true },
-                    { name: "Test   ", value: "**En cours de programmation**", inline: true },
-                )
-                .setTimestamp()
-                .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
-        
-            message.channel.send({ embeds: [shop]})
-            
-
-            if (message.author.bot) return;
-            const row = new Discord.MessageActionRow()
-                .addComponents(
-                    new Discord.MessageSelectMenu()
-                        .setCustomId("select")
-                        .setPlaceholder("Selectionner un article")
-                        .addOptions([
-                            {
-                                label: "Richissime",
-                                description: "Coût: 10 000",
-                                value: "richissime"
-                            }   
-                            ,
-                            {
-                                label: "Test",
-                                description: "En cours de progrmmation",
-                                value: "veteran"
-                            }
-                        ])
-                );
-            message.channel.send({content:"**Menu déroulant des rôles**", components: [row]})
-        }
-    
     }
 
-        
-)
-
-//selection rôle richissime
-const { readFileSync, writeFileSync } = require("fs");
-let alreadyBought = [];
-
-Client.on("interactionCreate", interaction => {
-  if (interaction.isSelectMenu()) {
-    if (interaction.customId === "select") {
-
-      if (interaction.values == "richissime") {
-        const utilisateur = interaction.user.id;
-
-        if (bdd["Argent"][utilisateur] < 10000) {
-            interaction.channel.bulkDelete(2).catch()
-
-          const notEnoughMoney = new Discord.MessageEmbed()
-            .setTitle("Not enough money")
-            .setDescription("Vous n'avez pas assez d'argent pour achter le rôle Richissime.")
-            .setColor("RED");
-          return interaction.reply({ embeds: [notEnoughMoney], ephemeral: true });
-        }
-        else {
-    
-        interaction.channel.bulkDelete(parseInt(2)).catch();
-        const shoprolerichissime = new Discord.MessageEmbed()
-          .setColor("#ADD8E6")
-          .setTitle("⚔️ *Boutique des rôles*");
-        interaction.channel.send({ embeds: [shoprolerichissime] }).then(channel => {
-          var row = new Discord.MessageActionRow()
-            .addComponents(
-              new Discord.MessageButton()
-                .setCustomId("acheter")
-                .setLabel("ACHETER")
-                .setStyle("PRIMARY")
-                .setEmoji("🛒")
-            )
-            .addComponents(
-              new Discord.MessageButton()
-                .setCustomId("quitter")
-                .setLabel("QUITTER")
-                .setStyle("DANGER")
-                .setEmoji("❌")
-            );
-          const Achatrichissime = new Discord.MessageEmbed()
+    // Shop command
+    if (message.content === config.prefix + "shop") {
+        message.delete();
+        const shop = new EmbedBuilder()
             .setColor("#ADD8E6")
             .setTitle("🛍️ Shop")
+            .setAuthor("Jocasta Nu", 
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwPOv3mF2SwoXLFh5UinX1yzp1HlmkqPofqg&usqp=CAU",
+                "https://discord.js.org")
             .setDescription("\u200b")
-            .setThumbnail(`https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Shop.svg/1200px-Shop.svg.png`)
-            .addField("**Confirmez-vous votre achat ?**", "Merci de fermer le channel quelle que soit votre décision")
+            .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Shop.svg/1200px-Shop.svg.png")
+            .addFields(
+                { name: "⚔️ Rôle", value: "*Boutique des rôles*" },
+                { name: "Richissime", value: "**Coût :** 10 000", inline: true },
+                { name: "\u200b", value: "\u200b", inline: true },
+                { name: "Test", value: "**En cours de programmation**", inline: true }
+            )
             .setTimestamp()
             .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
-          interaction.channel.send({ embeds: [Achatrichissime], components: [row] });
-        });
+
+        message.channel.send({ embeds: [shop] });
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId("select")
+                    .setPlaceholder("Sélectionner un article")
+                    .addOptions([
+                        {
+                            label: "Richissime",
+                            description: "Coût: 10 000",
+                            value: "richissime"
+                        },
+                        {
+                            label: "Test",
+                            description: "En cours de programmation",
+                            value: "test"
+                        }
+                    ])
+            );
+        message.channel.send({ content: "**Menu déroulant des rôles**", components: [row] });
     }
-      }
-    }
-  }
 });
 
-//vérification achat rôle richissime
-Client.on("interactionCreate", async interaction => {
-  if (!interaction.isButton()) return;
+// Rôle selection
+client.on("interactionCreate", interaction => {
+    if (interaction.isSelectMenu()) {
+        if (interaction.customId === "select") {
+            if (interaction.values[0] === "richissime") {
+                const utilisateur = interaction.user.id;
 
-  const utilisateur = interaction.user.id;
+                if (bdd["Argent"][utilisateur] < 10000) {
+                    interaction.channel.bulkDelete(2).catch();
 
-  if (interaction.customId === "acheter") {
-    interaction.channel.bulkDelete(2)
-    if (alreadyBought.includes(utilisateur)) {
-      return await interaction.reply({ content: "Vous avez déjà acheté cet article !", ephemeral: true });
+                    const notEnoughMoney = new EmbedBuilder()
+                        .setTitle("Not enough money")
+                        .setDescription("Vous n'avez pas assez d'argent pour acheter le rôle Richissime.")
+                        .setColor("RED");
+                    return interaction.reply({ embeds: [notEnoughMoney], ephemeral: true });
+                } else {
+                    interaction.channel.bulkDelete(2).catch();
+                    const shoprolerichissime = new EmbedBuilder()
+                        .setColor("#ADD8E6")
+                        .setTitle("⚔️ *Boutique des rôles*");
+
+                    interaction.channel.send({ embeds: [shoprolerichissime] }).then(channel => {
+                        const row = new ActionRowBuilder()
+                            .addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId("acheter")
+                                    .setLabel("ACHETER")
+                                    .setStyle(ButtonStyle.Primary)
+                                    .setEmoji("🛒")
+                            )
+                            .addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId("quitter")
+                                    .setLabel("QUITTER")
+                                    .setStyle(ButtonStyle.Danger)
+                                    .setEmoji("❌")
+                            );
+                        const Achatrichissime = new EmbedBuilder()
+                            .setColor("#ADD8E6")
+                            .setTitle("🛍️ Shop")
+                            .setDescription("\u200b")
+                            .setThumbnail("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Shop.svg/1200px-Shop.svg.png")
+                            .addField("**Confirmez-vous votre achat ?**", "Merci de fermer le channel quelle que soit votre décision")
+                            .setTimestamp()
+                            .setFooter("Bot créé par Malakili", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpTHkHMajWv-TJTjAjjiY8MUWgQNgfv3J_Eg&usqp=CAU");
+
+                        interaction.channel.send({ embeds: [Achatrichissime], components: [row] });
+                    });
+                }
+            }
+        }
     }
-
-    alreadyBought.push(utilisateur);
-    bdd["Argent"][utilisateur] -= 10000;
-    Savebdd();
-
-    const merciachat = new Discord.MessageEmbed()
-      .setColor("#ADD8E6")
-      .setTitle("✅ **Merci de votre achat**");
-
-    await interaction.member.roles.add("1047197631706828861").catch(console.error);
-    await interaction.reply({ embeds: [merciachat], ephemeral: true });
-  }
-
-  if (interaction.customId === "quitter") {
-    interaction.channel.bulkDelete(2)
-    await interaction.reply({ content: "Achat annulé", ephemeral: true });
-  }
 });
 
+// Vérification achat rôle richissime
+client.on("interactionCreate", async interaction => {
+    if (!interaction.isButton()) return;
+
+    const utilisateur = interaction.user.id;
+
+    if (interaction.customId === "acheter") {
+        interaction.channel.bulkDelete(2);
+        if (alreadyBought.includes(utilisateur)) {
+            return await interaction.reply({ content: "Vous avez déjà acheté cet article !", ephemeral: true });
+        }
+
+        alreadyBought.push(utilisateur);
+        bdd["Argent"][utilisateur] -= 10000;
+        Savebdd();
+
+        const merciachat = new EmbedBuilder()
+            .setColor("#ADD8E6")
+            .setTitle("✅ **Merci de votre achat**");
+
+        await interaction.member.roles.add("1047197631706828861").catch(console.error);
+        await interaction.reply({ embeds: [merciachat], ephemeral: true });
+    }
+
+    if (interaction.customId === "quitter") {
+        interaction.channel.bulkDelete(2);
+        await interaction.reply({ content: "Achat annulé", ephemeral: true });
+    }
+});
 
 /*
 Futur objectif :
@@ -638,8 +503,6 @@ Futur objectif :
 
 
 // jeu pendu
-
-const { Permissions, MessageActionRow, MessageSelectMenu } = require("discord.js");
 
 const penduStages = [
     "```\n  _______\n |/      |\n |\n |\n |\n |\n_|___\n```",
@@ -677,6 +540,7 @@ const wordLists = {
 "Bowling", "Antoine Dupont", "Tir à l'arc", "Escalade", "Canöe", "Rafting", "Hockey", "Ping-pong", "Randonnée", "Renaud Lavillenie"
 ]
 };
+
 // Fonction pour enlever les accents d'un mot
 function normalizeLetter(letter) {
     return letter.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -684,7 +548,7 @@ function normalizeLetter(letter) {
 
 let games = new Map();
 
-Client.on("messageCreate", async (message) => {
+client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     const guild = message.guild;
     if (!guild) return;
@@ -715,28 +579,29 @@ async function startGame(message) {
     }
 
     try {
-        let channel = await guild.channels.create(`pendu-${user.username}`, {
-            type: "GUILD_TEXT",
+        let channel = await guild.channels.create({
+            name: `pendu-${user.username}`,
+            type: 0, // GUILD_TEXT
             permissionOverwrites: [
                 {
                     id: guild.roles.everyone.id,
-                    deny: [Permissions.FLAGS.VIEW_CHANNEL]
+                    deny: [PermissionsBitField.Flags.ViewChannel]
                 },
                 {
                     id: user.id,
-                    allow: [Permissions.FLAGS.VIEW_CHANNEL, Permissions.FLAGS.SEND_MESSAGES]
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
                 },
                 {
-                    id: Client.user.id,
-                    allow: [Permissions.FLAGS.VIEW_CHANNEL, Permissions.FLAGS.SEND_MESSAGES]
+                    id: client.user.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
                 }
             ]
         });
 
         message.reply(`🔹 Ta partie de pendu a commencé ! Rejoins le salon : <#${channel.id}>`);
 
-        let themeSelection = new MessageActionRow().addComponents(
-            new MessageSelectMenu()
+        let themeSelection = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
                 .setCustomId("select_theme")
                 .setPlaceholder("Choisis un thème pour commencer !")
                 .addOptions([
@@ -759,6 +624,7 @@ async function startGame(message) {
             let chosenTheme = interaction.values[0];
             let word = wordLists[chosenTheme][Math.floor(Math.random() * wordLists[chosenTheme].length)];
             let hiddenWord = word.split("").map(char => (char === " " ? " " : "_")).join("")
+
             let errors = 0;
             let guessedLetters = [];
 
